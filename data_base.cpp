@@ -7,6 +7,8 @@ data_base::data_base()
 
 void data_base::read_folder(const QString& folder_path)
 {
+    if(!all_data.isEmpty())
+        all_data.clear();
     QStringList filters;
     int norm_files = 0, bad_files = 0;
     filters << "*.txt";
@@ -103,12 +105,15 @@ bool data_base::load_from_file(const QString& file)
                 auto t_file_iterator = t_data.begin();
                 word = *t_file_iterator;
                 ++t_file_iterator;
-
-                file_index = t_file_iterator->split("|");
-                file_name = file_index.at(0);
-                file_index.pop_front();
-                file_index.pop_back();
-                all_data[word].insert(file_name, file_index);
+                while(t_file_iterator != t_data.end() -1)
+                {
+                    file_index = t_file_iterator->split("|");
+                    file_name = file_index.at(0);
+                    file_index.pop_front();
+                    file_index.pop_back();
+                    all_data[word].insert(file_name, file_index);
+                    t_file_iterator++;
+                }
             }
             ++data_iterator;
         }
