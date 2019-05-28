@@ -28,7 +28,10 @@ private:
     QMap<QString, QMap<QString, QStringList>> all_data;
 
 
-    void add_data(const QString& file_name, const QStringList& data_list);
+    void get_words(const QString &file_name, const QString &data_str);
+    void add_word_to_data(const QString& file_name, const QString& word, const QString& word_data);
+
+    //void add_data(const QString& file_name, const QStringList& data_list);
     QString str_to_save(const QString& word);
 };
 

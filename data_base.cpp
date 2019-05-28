@@ -23,8 +23,8 @@ void data_base::read_folder(const QString& folder_path)
         }else
         {
             file_data = t_file.readAll();
-            t_sent_data = file_data.split(delim);
-            add_data(itr.fileName(), t_sent_data);
+            //t_sent_data = file_data.split(delim);
+            get_words(itr.fileName(), file_data);
             norm_files++;
         }
         t_file.close();
@@ -121,43 +121,124 @@ bool data_base::load_from_file(const QString& file)
     }
 }
 
-void data_base::add_data(const QString &file_name, const QStringList &data_list)
+//void data_base::add_data(const QString &file_name, const QStringList &data_list)
+//{
+//    int sentence_count = 0;
+//    for(auto sentence : data_list)
+//    {
+//        QRegExp delim("(\\\"|\\,|\\-|\\!|\\.|\\?)");
+//        sentence.remove(delim);
+//        t_word_data = sentence.split(" ");
+//        int offset = 0;
+//        for(auto word : t_word_data)
+//        {
+//            if(word.size() == 0)
+//                continue;
+//            QString t_data = "Sent#";
+//            t_data += QString::number(sentence_count) + ", offset = " + QString::number(offset);
+//            if (all_data.contains(word))
+//            {
+//                if(all_data[word].contains(file_name))
+//                {
+//                    all_data[word][file_name] << t_data;
+//                }
+//                else
+//                {
+//                    QStringList temp;
+//                    temp.append(t_data);
+//                    all_data[word].insert(file_name, temp);
+//                }
+//            }
+//            else
+//            {
+//                QMap<QString, QStringList> temp_map;
+//                temp_map[file_name].append(t_data);
+//                all_data[word] = temp_map;
+//            }
+//            offset += word.size() + 1;
+//        }
+//        sentence_count++;
+//    }
+//}
+
+void data_base::get_words(const QString &file_name, const QString &data_str)
 {
     int sentence_count = 0;
-    for(auto sentence : data_list)
+    long long int current_sent_pos = 0;
+    QChar ch;
+    QString word, word_data;
+#define DIGIT_OR_EN_RU_LETTER (ch >= 48 && ch <= 57) || (ch >= 65 && ch <=90) || (ch >= 97 && ch <= 122) || (ch >= 1040 && ch <= 1103)
+    for (auto i = 0; i < data_str.size(); i++)
     {
-        QRegExp delim("(\\\"|\\,|\\-|\\!|\\.|\\?)");
-        sentence.remove(delim);
-        t_word_data = sentence.split(" ");
-        int offset = 0;
-        for(auto word : t_word_data)
+        ch = data_str[i];
+        if(DIGIT_OR_EN_RU_LETTER)
         {
-            if(word.size() == 0)
-                continue;
-            QString t_data = "Sent#";
-            t_data += QString::number(sentence_count) + ", offset = " + QString::number(offset);
-            if (all_data.contains(word))
+            word_data = "Sent#" + QString::number(sentence_count) + ", offset = " + QString::number(current_sent_pos);
+            if(ch >= 48 && ch <= 57)    //if digit -> while digit
             {
-                if(all_data[word].contains(file_name))
+                while (data_str[i] >= 48 && data_str[i] <= 57)
                 {
-                    all_data[word][file_name] << t_data;
-                }
-                else
-                {
-                    QStringList temp;
-                    temp.append(t_data);
-                    all_data[word].insert(file_name, temp);
+                    word.append(data_str[i]);
+                    current_sent_pos++;
+                    i++;
                 }
             }
-            else
+            else if((ch >= 65 && ch <= 90) || (ch >= 97 && ch <= 155 )) //if EN letter -> while EN letter
             {
-                QMap<QString, QStringList> temp_map;
-                temp_map[file_name].append(t_data);
-                all_data[word] = temp_map;
+                while((data_str[i] >= 65 && data_str[i] <= 90) || (data_str[i] >= 97 && data_str[i] <= 155 ))
+                {
+                    word.append(data_str[i]);
+                    current_sent_pos++;
+                    i++;
+                }
             }
-            offset += word.size() + 1;
+            else if(ch >= 1040 && ch <= 1103)   //if RU letter -> whileRU letter
+            {
+                while (data_str[i] >= 1040 && data_str[i] <= 1103)
+                {
+                    word.append(data_str[i]);
+                    current_sent_pos++;
+                    i++;
+                }
+            }
+            i--;
+            add_word_to_data(file_name, word, word_data);   //sent data to DB
+        }else                                               //some other symbol
+        {
+            if(!word.isEmpty())
+            {
+                word.clear();
+            }
+            current_sent_pos++;
+            if(ch == '.' || ch == '!' || ch == '?' || ch == ':' || ch == '...')
+            {
+                sentence_count++;
+                current_sent_pos = 0;
+            }
         }
-        sentence_count++;
+    }
+}
+
+void data_base::add_word_to_data(const QString& file_name, const QString& word, const QString& word_data)
+{
+    if (all_data.contains(word))
+    {
+        if(all_data[word].contains(file_name))
+        {
+            all_data[word][file_name] << word_data;
+        }
+        else
+        {
+            QStringList temp;
+            temp.append(word_data);
+            all_data[word].insert(file_name, temp);
+        }
+    }
+    else
+    {
+        QMap<QString, QStringList> temp_map;
+        temp_map[file_name].append(word_data);
+        all_data[word] = temp_map;
     }
 }
 
